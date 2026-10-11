@@ -201,6 +201,11 @@ function renderProfileSelect(profils, activeId) {
 }
 
 async function getStore() {
+  // Petit fichier storage centralisé (repli direct si absent)
+  if (typeof HautomatiqueStorage !== "undefined") {
+    const { profils, activeProfileId } = await HautomatiqueStorage.getActiveProfile();
+    return { profils, activeProfileId };
+  }
   const s = await chrome.storage.local.get(["profils", "activeProfileId"]);
   return { profils: s.profils || [], activeProfileId: s.activeProfileId };
 }

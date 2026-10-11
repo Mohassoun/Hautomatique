@@ -14,6 +14,8 @@
 
 // Clé de dev pré-configurée (voir config.js — ne pas commiter en public)
 try { importScripts("config.js"); } catch (e) { console.warn("[Hautomatique] config.js absent, clé manuelle requise."); }
+// Petit fichier storage centralisé (profils + clés + provider + privacy)
+try { importScripts("storage.js"); } catch (e) { console.warn("[Hautomatique] storage.js absent."); }
 
 // --- Lecteur .env minimal (MV3 : fetch du fichier empaqueté, avec cache) ---
 // Format : lignes CLÉ=valeur, # commentaires, guillemets optionnels.
@@ -452,13 +454,21 @@ chrome.commands.onCommand.addListener((command) => {
 
 async function fillActiveProfileIntoTab(knownTabId) {
   try {
-    const s = await chrome.storage.local.get(["aiProvider", "geminiApiKey", "openaiApiKey", "profils", "activeProfileId"]);
-    const provider = s.aiProvider === "openai" ? "openai" : "gemini";
-    const profils = s.profils || [];
-    const active = profils.find((p) => p.id === s.activeProfileId) || profils[0];
+    // Via le petit fichier storage (repli direct si storage.js absent)
+    let provider = "gemini", profils = [], activeProfileId = 0, sKeys = {};
+    if (typeof HautomatiqueStorage !== "undefined") {
+      const state = await HautomatiqueStorage.loadState();
+      provider = state.aiProvider; profils = state.profils; activeProfileId = state.activeProfileId;
+      sKeys = { geminiApiKey: state.geminiApiKey, openaiApiKey: state.openaiApiKey };
+    } else {
+      const s = await chrome.storage.local.get(["aiProvider", "geminiApiKey", "openaiApiKey", "profils", "activeProfileId"]);
+      provider = s.aiProvider === "openai" ? "openai" : "gemini";
+      profils = s.profils || []; activeProfileId = s.activeProfileId; sKeys = s;
+    }
+    const active = profils.find((p) => p.id === activeProfileId) || profils[0];
     const text = (active?.text || "").trim();
     // Clé selon le provider : stockée → .env → config.js
-    let apiKey = provider === "openai" ? s.openaiApiKey : s.geminiApiKey;
+    let apiKey = provider === "openai" ? sKeys.openaiApiKey : sKeys.geminiApiKey;
     if (!apiKey) apiKey = provider === "openai" ? await loadOpenAIEnvKey() : await loadEnvApiKey();
     if (!apiKey && provider === "gemini" && typeof DEFAULT_GEMINI_API_KEY !== "undefined" && DEFAULT_GEMINI_API_KEY) {
       apiKey = DEFAULT_GEMINI_API_KEY;
