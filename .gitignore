@@ -1,0 +1,8 @@
+# Clé API Gemini de dev — ne jamais commiter (voir config.js)
+config.js
+
+# Secrets locaux — ne jamais commiter
+.env
+
+# Documentation locale — non versionnée
+*.md

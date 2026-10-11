@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hautomatique — Autofill intelligent</title>
+  <style>
+    /* ===== Thème "Deep Purple + Emerald" — version épurée compacte ===== */
+    :root {
+      --bg: #f5f3ff;
+      --card: #ffffff;
+      --text: #1e1b4b;
+      --muted: #6d6a9e;
+      --primary: #6d28d9;
+      --primary-deep: #4c1d95;
+      --primary-light: #a855f7;
+      --primary-hover: #5b21b6;
+      --border: #ddd6fe;
+      --success: #059669;
+      --success-bright: #10b981;
+      --success-bg: #ecfdf5;
+      --error: #dc2626;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 344px;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(180deg, #ede9fe 0%, var(--bg) 30%);
+      color: var(--text);
+      padding: 12px;
+    }
+    header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .logo {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--primary-deep), var(--primary) 55%, var(--primary-light));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 16px;
+      box-shadow: 0 4px 12px rgba(109,40,217,.35);
+      flex-shrink: 0;
+    }
+    h1 { font-size: 15px; }
+    h1 small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+
+    label.section { font-size: 12px; font-weight: 600; color: var(--muted); margin: 8px 0 5px; display: flex; align-items: center; gap: 8px; }
+
+    /* Pastille profil actif */
+    .profile-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--success-bright);
+      box-shadow: 0 0 0 0 rgba(16,185,129,.55);
+      animation: pulse 2.2s ease-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16,185,129,.55); }
+      70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+
+    textarea#userText {
+      width: 100%; min-height: 110px; resize: vertical;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 9px 10px; font-size: 13px; line-height: 1.5;
+      background: var(--card); color: var(--text); outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    textarea#userText:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(109,40,217,.15); }
+
+    /* Bouton principal */
+    button#fillBtn {
+      width: 100%; margin-top: 10px; padding: 11px;
+      border: none; border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--primary-deep), var(--primary) 60%, #7c3aed);
+      color: #fff;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(109,40,217,.30);
+      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    button#fillBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+      box-shadow: 0 8px 22px rgba(109,40,217,.42);
+    }
+    button#fillBtn:active:not(:disabled) { transform: translateY(0) scale(.99); }
+    button#fillBtn:disabled { filter: saturate(.5); cursor: wait; }
+    button#fillBtn.loading { background: var(--primary-hover); cursor: wait; }
+    .spinner {
+      display: none; width: 14px; height: 14px; margin-right: 8px;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      border-radius: 50%; vertical-align: -2px;
+      animation: spin .7s linear infinite;
+    }
+    button#fillBtn.loading .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== Profils ===== */
+    .profile-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 8px 10px; margin-bottom: 2px;
+    }
+    .profile-row { display: flex; gap: 8px; }
+    select#profileSelect, select#providerSelect {
+      flex: 1; padding: 7px 9px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); border-radius: 8px; outline: none;
+      background: var(--bg); color: var(--text); max-width: 100%;
+    }
+    select#profileSelect:focus, select#providerSelect:focus { border-color: var(--primary); }
+    .profile-actions { display: flex; gap: 6px; margin-top: 7px; }
+    .profile-actions button {
+      flex: 1; padding: 6px 5px; font-size: 11px; font-weight: 600;
+      border-radius: 8px; cursor: pointer; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text);
+      transition: transform .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+    }
+    .profile-actions button:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary); color: var(--primary);
+      box-shadow: 0 3px 8px rgba(109,40,217,.18);
+    }
+    .profile-actions button:active { transform: translateY(0); }
+    button#deleteProfileBtn:hover { border-color: var(--error); color: var(--error); box-shadow: 0 3px 8px rgba(220,38,38,.15); }
+    button#saveProfileBtn:hover { border-color: var(--success); color: var(--success); box-shadow: 0 3px 8px rgba(5,150,105,.18); }
+
+    /* Statut */
+    #status {
+      margin-top: 8px; font-size: 12px; text-align: center;
+      min-height: 16px; color: var(--muted);
+    }
+    #status.success { color: var(--success); font-weight: 600; }
+
+    /* Carte d'erreur : masquée par défaut, affichée par popup.js */
+    #errorBox {
+      display: none; margin-top: 8px; padding: 9px 10px;
+      border-radius: var(--radius); font-size: 12px; line-height: 1.5;
+      border: 1px solid; gap: 8px;
+    }
+    #errorBox.show { display: flex; align-items: flex-start; }
+    #errorBox .icon { font-size: 16px; flex-shrink: 0; }
+    #errorBox strong { display: block; font-size: 12px; }
+    #errorBox .action { display: block; margin-top: 4px; opacity: .85; }
+    #errorBox.err-api_key_invalid { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    #errorBox.err-quota_exceeded { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    #errorBox.err-empty_text, #errorBox.err-no_match { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    #errorBox.err-default { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+
+    /* ===== Réglages : ouverture douce + chevron rotatif ===== */
+    details#options {
+      margin-top: 10px; background: var(--card);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 8px 10px;
+      transition: box-shadow .25s ease, border-color .25s ease;
+    }
+    details#options[open] { border-color: var(--primary-light); box-shadow: 0 4px 14px rgba(109,40,217,.15); }
+    details#options summary {
+      cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary);
+      list-style: none; display: flex; align-items: center; gap: 6px;
+      user-select: none;
+    }
+    details#options summary::-webkit-details-marker { display: none; }
+    details#options summary .chev {
+      margin-left: auto; font-size: 10px; color: var(--muted);
+      transition: transform .25s ease;
+    }
+    details#options[open] summary .chev { transform: rotate(180deg); }
+    .options-body {
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows .28s ease;
+    }
+    details#options[open] .options-body { grid-template-rows: 1fr; }
+    .options-inner { overflow: hidden; min-height: 0; }
+    .api-row { display: flex; gap: 8px; margin-top: 8px; }
+    input#apiKey {
+      flex: 1; padding: 7px 9px; font-size: 12px; min-width: 0;
+      border: 1px solid var(--border); border-radius: 8px; outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    input#apiKey:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(109,40,217,.12); }
+    button#saveKey {
+      padding: 7px 12px; border: none; border-radius: 8px; flex-shrink: 0;
+      background: var(--text); color: #fff; font-size: 12px; cursor: pointer;
+      transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+    }
+    button#saveKey:hover { background: var(--primary); box-shadow: 0 3px 10px rgba(109,40,217,.35); transform: translateY(-1px); }
+
+    /* Note vie privée après remplissage avec masquages */
+    #privacyNote {
+      display: none; margin-top: 8px; padding: 8px 10px;
+      background: var(--success-bg); border: 1px solid #a7f3d0; color: #065f46;
+      border-radius: var(--radius); font-size: 11.5px; line-height: 1.5;
+    }
+    #privacyNote.show { display: block; animation: fadeSlide .3s ease; }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Rapport de vérification */
+    #reportBox {
+      display: none; margin-top: 8px; padding: 9px 10px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 11.5px; line-height: 1.6;
+    }
+    #reportBox.show { display: block; }
+    #reportBox h3 { font-size: 12px; margin-bottom: 6px; }
+    #reportBox ul { margin: 4px 0 4px 16px; padding: 0; }
+    #reportBox .warn { color: #92400e; }
+    #reportBox .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">H</div>
+    <h1>Hautomatique <small>Autofill intelligent par IA (Gemini / OpenAI)</small></h1>
+  </header>
+
+  <!-- 1. Profil actif -->
+  <label class="section" for="profileSelect"><span class="profile-dot" title="Profil actif"></span>Profil actif :</label>
+  <div class="profile-card">
+    <div class="profile-row">
+      <select id="profileSelect" aria-label="Choisir un profil"></select>
+    </div>
+    <div class="profile-actions">
+      <button id="saveProfileBtn" title="Écrase le profil actif avec le texte ci-dessous">💾 Sauvegarder</button>
+      <button id="newProfileBtn" title="Créer un nouveau profil vide">＋ Nouveau</button>
+      <button id="deleteProfileBtn" title="Supprimer le profil actif">🗑</button>
+    </div>
+  </div>
+
+  <!-- 2. Contenu du profil -->
+  <label class="section" for="userText">Contenu du profil :</label>
+  <textarea id="userText" placeholder="Ex :&#10;Jean Dupont&#10;jean.dupont@mail.com&#10;+33 6 12 34 56 78&#10;12 rue des Lilas, 75011 Paris&#10;Développeur web, 5 ans d'expérience..."></textarea>
+
+  <!-- 3. Bouton principal -->
+  <button id="fillBtn"><span class="spinner" aria-hidden="true"></span><span id="fillLabel">✨ Remplir le formulaire</span></button>
+
+  <!-- 4. Retour visuel -->
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="errorBox" role="alert">
+    <span class="icon" id="errorIcon">⚠️</span>
+    <div><strong id="errorTitle"></strong><span id="errorDetail"></span><span class="action" id="errorAction"></span></div>
+  </div>
+
+  <!-- 5. Réglages -->
+  <details id="options">
+    <summary>⚙️ Réglages <span class="chev">▼</span></summary>
+    <div class="options-body"><div class="options-inner">
+    <label class="section" for="providerSelect">Provider IA :</label>
+    <div class="profile-row">
+      <select id="providerSelect" aria-label="Choisir le provider IA">
+        <option value="gemini">✨ Gemini (Google)</option>
+        <option value="openai">🧠 OpenAI (GPT)</option>
+      </select>
+    </div>
+    <div class="api-row">
+      <input id="apiKey" type="password" placeholder="Clé API" autocomplete="off" spellcheck="false" />
+      <button id="saveKey">Sauver</button>
+    </div>
+    </div></div>
+  </details>
+
+  <!-- 6. Note vie privée -->
+  <div id="privacyNote" role="status"></div>
+
+  <!-- 7. Rapport de vérification : rempli par popup.js -->
+  <div id="reportBox" role="status" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

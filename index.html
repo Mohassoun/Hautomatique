@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sandbox QA — Hautomatique</title>
+  <style>
+    :root { --primary:#6d28d9; --bg:#f8fafc; --card:#fff; --border:#e2e8f0; --text:#0f172a; --muted:#64748b; --ok:#059669; }
+    * { box-sizing:border-box; }
+    body { font-family:"Segoe UI",system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:24px; }
+    .wrap { max-width:900px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
+    @media (max-width:800px){ .wrap{grid-template-columns:1fr;} }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+    h1 { font-size:20px; margin:0 0 4px; }
+    .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+    fieldset { border:1px solid var(--border); border-radius:10px; padding:14px; margin:0 0 16px; }
+    legend { font-weight:700; font-size:13px; padding:0 8px; color:var(--primary); }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    label { display:block; font-size:12px; font-weight:600; margin:8px 0 4px; }
+    input[type=text],input[type=email],input[type=tel],input[type=date],input[type=url],input[type=number],select,textarea {
+      width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px;
+    }
+    textarea { min-height:70px; resize:vertical; }
+    .radio-row,.check-row { display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:6px; }
+    .radio-row label,.check-row label { font-weight:400; display:flex; gap:6px; align-items:center; margin:0; }
+    .nested { background:#faf5ff; border:1px dashed #c4b5fd; border-radius:10px; padding:12px; margin-top:8px; }
+    .actions { display:flex; gap:10px; margin-top:10px; }
+    button { padding:10px 16px; border-radius:10px; border:none; cursor:pointer; font-weight:700; }
+    #submitBtn { background:var(--primary); color:#fff; }
+    #resetBtn { background:#e2e8f0; }
+    #fillCounter { font-size:12px; color:var(--muted); margin-top:8px; }
+    pre.sample { background:#0f172a; color:#e2e8f0; font-size:11.5px; padding:12px; border-radius:10px; white-space:pre-wrap; line-height:1.5; }
+    /* Bloc éditable : curseur texte + halo Emerald au focus */
+    pre.sample[contenteditable] { cursor:text; outline:none; transition:box-shadow .2s ease; }
+    pre.sample[contenteditable]:hover { box-shadow:0 0 0 1px #334155; }
+    pre.sample[contenteditable]:focus { box-shadow:0 0 0 2px #059669; }
+    /* Bouton Fill Hero : ardoise sombre, arrondi fluide, semi-bold, hover reactif */
+    #copyBtn {
+      width:100%; margin-top:8px; padding:12px 16px;
+      background:#1e293b; color:#f8fafc;
+      font-size:13px; font-weight:600; border-radius:12px;
+      box-shadow:0 4px 14px rgba(15,23,42,.35);
+      transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    #copyBtn:hover { background:#0f172a; transform:translateY(-2px); box-shadow:0 8px 22px rgba(15,23,42,.45); }
+    #copyBtn:active { transform:translateY(0) scale(.99); }
+    /* Etat copie confirme : vert Emerald pendant 1,5 s (pose par JS) */
+    #copyBtn.copied { background:#059669; box-shadow:0 4px 14px rgba(5,150,105,.45); }
+    #result { font-size:12px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:10px; margin-top:10px; white-space:pre-wrap; word-break:break-word; max-height:400px; overflow:auto; }
+    .qa-tips { font-size:12px; color:var(--muted); line-height:1.7; }
+    .qa-tips code { background:#ede9fe; padding:1px 6px; border-radius:6px; color:#5b21b6; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Sandbox QA — Hautomatique</h1>
+  <p class="sub">Page de test locale. Ouvrez-la avec <code>Alt+F → Ouvrir un fichier</code> ou <code>python -m http.server</code>, puis lancez l'extension dessus. Aucun site tiers requis.</p>
+
+  <div class="wrap">
+    <!-- ================= FORMULAIRE DE CANDIDATURE COMPLET ================= -->
+    <form id="candidature" class="card" onsubmit="return false;">
+      <fieldset>
+        <legend>1. Identité (textes classiques)</legend>
+        <div class="grid2">
+          <div><label for="prenom">Prénom *</label><input id="prenom" name="first_name" type="text" placeholder="Ex : Marie" autocomplete="given-name" /></div>
+          <div><label for="nom">Nom *</label><input id="nom" name="last_name" type="text" placeholder="Ex : Dupont" autocomplete="family-name" /></div>
+        </div>
+        <label for="email">Adresse e-mail professionnelle</label>
+        <input id="email" name="email" type="email" placeholder="prenom.nom@exemple.fr" autocomplete="email" />
+        <div class="grid2">
+          <div><label for="tel">Téléphone portable</label><input id="tel" name="phone" type="tel" placeholder="+33 6 ..." autocomplete="tel" /></div>
+          <div><label for="dob">Date de naissance</label><input id="dob" name="birthdate" type="date" /></div>
+        </div>
+        <label for="site">Site / LinkedIn / Portfolio (URL)</label>
+        <input id="site" name="website" type="url" placeholder="https://linkedin.com/in/..." />
+      </fieldset>
+
+      <fieldset>
+        <legend>2. Adresse (champs imbriqués complexes)</legend>
+        <div class="nested">
+          <label for="rue">Rue et numéro</label>
+          <input id="rue" name="address.street" type="text" placeholder="12 rue des Lilas" autocomplete="street-address" />
+          <div class="grid2">
+            <div><label for="ville">Ville</label><input id="ville" name="address.city" type="text" placeholder="Paris" autocomplete="address-level2" /></div>
+            <div><label for="cp">Code postal</label><input id="cp" name="address.zip" type="text" inputmode="numeric" placeholder="75011" autocomplete="postal-code" /></div>
+          </div>
+          <!-- PIÈGE QA : valeurs techniques, pas de texte littéral -->
+          <label for="pays">Pays de résidence</label>
+          <select id="pays" name="address.country">
+            <option value="">-- Choisir --</option>
+            <option value="FR">France (FR - france-01)</option>
+            <option value="BE">Belgique</option>
+            <option value="US">États-Unis d'Amérique</option>
+            <option value="CA">Canada</option>
+            <option value="DE">Allemagne / Deutschland</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. Profil (selects + zones de texte)</legend>
+        <label for="etudes">Niveau d'études le plus élevé</label>
+        <select id="etudes" name="education">
+          <option value="">-- Choisir --</option>
+          <option value="bac">Baccalauréat</option>
+          <option value="bac2">Bac +2 (BTS / DUT)</option>
+          <option value="bac3">Bac +3 (Licence)</option>
+          <option value="bac5">Bac +5 (Master / Ingénieur)</option>
+          <option value="phd">Doctorat (PhD)</option>
+        </select>
+        <label for="contrat">Type de contrat recherché</label>
+        <select id="contrat" name="contract">
+          <option value="">-- Choisir --</option>
+          <option value="cdi">CDI — Temps plein</option>
+          <option value="cdd">CDD</option>
+          <option value=" freelance ">Freelance / Indépendant</option>
+          <option value="stage">Stage</option>
+        </select>
+        <label for="xp">Expérience (résumé libre)</label>
+        <textarea id="xp" name="experience" placeholder="Décrivez vos 3 dernières expériences..."></textarea>
+        <label for="motivation">Lettre de motivation</label>
+        <textarea id="motivation" name="cover_letter" placeholder="Pourquoi ce poste ?"></textarea>
+      </fieldset>
+
+      <fieldset>
+        <legend>4. Genre (boutons radio — valeurs codées)</legend>
+        <!-- PIÈGE QA : Gemini renverra "Homme"/"Femme", les values sont "M"/"F" -->
+        <div class="radio-row" role="radiogroup" aria-label="Genre">
+          <label><input type="radio" name="gender" value="M" /> Homme</label>
+          <label><input type="radio" name="gender" value="F" /> Femme</label>
+          <label><input type="radio" name="gender" value="X" /> Autre / Ne se prononce pas</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>5. Compétences (cases à cocher multiples)</legend>
+        <div class="check-row">
+          <label><input type="checkbox" name="skills" value="javascript" /> JavaScript</label>
+          <label><input type="checkbox" name="skills" value="python" /> Python</label>
+          <label><input type="checkbox" name="skills" value="sql" /> SQL</label>
+          <label><input type="checkbox" name="skills" value="gestion-projet" /> Gestion de projet</label>
+          <label><input type="checkbox" name="skills" value="anglais" /> Anglais courant</label>
+        </div>
+        <label for="salaire">Prétention salariale annuelle brute (€)</label>
+        <input id="salaire" name="salary" type="number" min="0" step="500" placeholder="38000" />
+      </fieldset>
+
+      <div class="actions">
+        <button id="submitBtn" type="submit">Envoyer ma candidature</button>
+        <button id="resetBtn" type="reset">Réinitialiser</button>
+      </div>
+      <div id="fillCounter">Champs remplis détectés : 0 / 15</div>
+    </form>
+
+    <!-- ================= PANNEAU QA ================= -->
+    <aside>
+      <div class="card">
+        <h1 style="font-size:14px;">📋 Texte de test à coller</h1>
+        <p class="sub">✏️ Cliquez dans le bloc noir pour le modifier, puis copiez-le vers le popup Hautomatique :</p>
+        <pre class="sample" id="sampleText" contenteditable="plaintext-only" spellcheck="false" title="Cliquez pour modifier ce texte">Marie Dupont
+marie.dupont@exemple.fr
++33 6 12 34 56 78
+Née le 1992-04-15
+12 rue des Lilas, 75011 Paris, France
+Niveau Master (Bac+5). 6 ans d'expérience dev JS/Python/SQL.
+Je cherche un CDI. Femme.
+Compétences : JavaScript, Python, Anglais courant.
+Prétention : 38000€.</pre>
+        <button id="copyBtn" title="Copie le texte dans le presse-papiers — lancez ensuite l'extension pour remplir le formulaire">rempli les input de ton page</button>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <h1 style="font-size:14px;">🔍 Résultat du formulaire (QA)</h1>
+        <div id="result">(vide — cliquez « Envoyer » pour voir les données collectées)</div>
+        <div class="qa-tips" style="margin-top:10px;">
+          Cas pièges couverts : <code>France → FR</code>, <code>Femme → F</code>,
+          <code>Master → bac5</code>, <code>CDI → cdi</code>, adresse imbriquée
+          <code>address.*</code>, checkboxes multiples.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // --- Utilitaires QA : compteur live + dump du formulaire ---
+    const form = document.getElementById("candidature");
+    const counter = document.getElementById("fillCounter");
+    const result = document.getElementById("result");
+    const TOTAL = 15;
+
+    function countFilled() {
+      let n = 0;
+      form.querySelectorAll("input,select,textarea").forEach(el => {
+        if (el.type === "checkbox" || el.type === "radio") { if (el.checked) n++; }
+        else if (el.value && el.value.trim() !== "") n++;
+      });
+      // Compte les groupes radio/checkbox une seule fois pour l'affichage
+      counter.textContent = `Champs remplis détectés : ${n} (indicatif) / ${TOTAL} contrôles`;
+    }
+    form.addEventListener("input", countFilled);
+    form.addEventListener("change", countFilled);
+
+    document.getElementById("submitBtn").addEventListener("click", () => {
+      // Garde-fou async : l'extension signale une frappe en cours via ce drapeau.
+      // Sans lui, un clic Envoyer pendant la frappe lirait un formulaire à moitié rempli.
+      if (document.documentElement.dataset.hautomatiqueBusy) {
+        result.textContent = "⏳ Remplissage Hautomatique en cours… attendez la fin de la frappe (quelques secondes) puis cliquez à nouveau sur « Envoyer ».";
+        return;
+      }
+      const data = {};
+      new FormData(form).forEach((v, k) => {
+        // Regroupe les valeurs multiples (ex: skills)
+        if (data[k] !== undefined) data[k] = [].concat(data[k], v);
+        else data[k] = v;
+      });
+      // Garde-fou protocole : un dump entièrement vide signifie que l'extension
+      // n'a jamais rempli le formulaire (le bouton du panneau ne fait que COPIER).
+      const hasValue = Object.values(data).some((v) =>
+        Array.isArray(v) ? v.some((x) => String(x).trim() !== "") : String(v).trim() !== "");
+      if (!hasValue) {
+        result.textContent = "⚠️ Formulaire vide : l'extension ne l'a pas rempli.\n\nProtocole correct :\n1. Cliquez « rempli les input de ton page » (copie le texte),\n2. Ouvrez le popup Hautomatique (ou Ctrl+Maj+H),\n3. Cliquez « ✨ Remplir le formulaire » et attendez les halos verts,\n4. Revenez ici et cliquez « Envoyer ».";
+        countFilled();
+        return;
+      }
+      result.textContent = JSON.stringify(data, null, 2);
+      countFilled();
+    });
+    // Copie Fill Hero : presse-papiers + feedback vert "📋 Texte copié !" (1,5 s)
+    const copyBtn = document.getElementById("copyBtn");
+    const COPY_LABEL = "rempli les input de ton page";
+    let copyTimer = null;
+    copyBtn.addEventListener("click", async () => {
+      const text = document.getElementById("sampleText").innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // Repli : contexte non sécurisé (file://) → sélection + execCommand
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      copyBtn.textContent = "📋 Texte copié !";
+      copyBtn.classList.add("copied");
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => {
+        copyBtn.textContent = COPY_LABEL;
+        copyBtn.classList.remove("copied");
+      }, 1500);
+    });
+  </script>
+</body>
+</html>
