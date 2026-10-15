@@ -6,3 +6,4 @@ config.js
 
 # Documentation locale — non versionnée
 *.md
+!README.md
